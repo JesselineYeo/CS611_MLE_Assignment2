@@ -1,0 +1,69 @@
+services:
+  airflow-init:
+    build: .
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__FERNET_KEY=PAqBeGJLJTYFzVkOGHWIYXdLO7XdXz5yTdxAGJe9ezM=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - airflow_data:/opt/airflow
+      - .:/app
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+    entrypoint: >
+      /bin/bash -c "airflow db init &&
+      airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true"
+
+  airflow-webserver:
+    build: .
+    depends_on:
+      - airflow-init
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__FERNET_KEY=PAqBeGJLJTYFzVkOGHWIYXdLO7XdXz5yTdxAGJe9ezM=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - airflow_data:/opt/airflow
+      - .:/app
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "echo '=================================================' &&
+      echo 'Airflow UI available at: http://localhost:8080' &&
+      echo 'Username: admin' &&
+      echo 'Password: admin' &&
+      echo '=================================================' &&
+      airflow webserver"
+
+  airflow-scheduler:
+    build: .
+    depends_on:
+      - airflow-init
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__FERNET_KEY=PAqBeGJLJTYFzVkOGHWIYXdLO7XdXz5yTdxAGJe9ezM=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - airflow_data:/opt/airflow
+      - .:/app
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+    command: scheduler
+
+  jupyter:
+    build: .
+    depends_on:
+      - airflow-init
+    volumes:
+      - .:/app
+    ports:
+      - "8888:8888"
+    working_dir: /app
+    command: >
+      bash -c "pip install jupyter &&
+      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root"
+
+volumes:
+  airflow_data:
